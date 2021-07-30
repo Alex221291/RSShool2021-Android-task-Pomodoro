@@ -1,9 +1,6 @@
 package com.example.pomodoro
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.app.Service
+import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -18,10 +15,6 @@ class ForegroundService : Service() {
     private var notificationManager: NotificationManager? = null
     private var job: Job? = null
 
-//    val resultPendingIntent = PendingIntent.getActivity(
-//        this, 0, Intent(this, MainActivity::class.java),
-//        PendingIntent.FLAG_UPDATE_CURRENT)
-
     private val builder by lazy {
         NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("timer")
@@ -31,9 +24,7 @@ class ForegroundService : Service() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setSilent(true)
             .setSmallIcon(R.drawable.ic_baseline_access_alarm_24)
-            .setContentIntent(PendingIntent.getActivity(
-                this, 0, Intent(this, MainActivity::class.java),
-                PendingIntent.FLAG_UPDATE_CURRENT))
+            .setContentIntent(getPendingIntent())
     }
 
 

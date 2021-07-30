@@ -13,16 +13,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
 import androidx.lifecycle.ProcessLifecycleOwner
-import android.app.NotificationManager
-
-import android.R
-
-import androidx.core.app.NotificationCompat
-
-import android.app.PendingIntent
-
-
-
 
 //import kotlinx.coroutines.*
 
@@ -114,6 +104,7 @@ class MainActivity : AppCompatActivity(), StopwatchListener, LifecycleObserver {
     private var backPressed: Long = 0
 
     override fun onBackPressed() {
+        startedId = -1
         if (backPressed + 2000 > System.currentTimeMillis()) {
             super.onBackPressed()
         } else {
@@ -133,6 +124,9 @@ class MainActivity : AppCompatActivity(), StopwatchListener, LifecycleObserver {
             )
             startService(startIntent)
         }
+
+
+
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_START)

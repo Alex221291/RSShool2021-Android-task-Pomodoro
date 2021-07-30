@@ -94,7 +94,6 @@ class StopwatchViewHolder(
             override fun onFinish() {
                 binding.constraintLayout.setBackgroundColor(ContextCompat.getColor(binding.root.context,
                     R.color.fire_brick))
-                listener.stop(stopwatch.id, stopwatch.currentMs)
                 stopwatch.currentMs = -1L
                 listener.stop(stopwatch.id, stopwatch.currentMs)
                 binding.startPauseButton.text = resources.getText(R.string.finish)
