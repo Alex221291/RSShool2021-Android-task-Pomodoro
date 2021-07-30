@@ -3,15 +3,13 @@ package com.example.pomodoro
 import android.content.res.Resources
 import android.graphics.drawable.AnimationDrawable
 import android.os.CountDownTimer
+import androidx.core.content.ContextCompat
 import androidx.core.view.isInvisible
-import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.example.pomodoro.databinding.StopwatchItemBinding
 
 import androidx.lifecycle.*
-import androidx.lifecycle.ProcessLifecycleOwner
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.combineTransform
+
 
 class StopwatchViewHolder(
     private val binding: StopwatchItemBinding,
@@ -20,15 +18,22 @@ class StopwatchViewHolder(
 ) : RecyclerView.ViewHolder(binding.root), LifecycleObserver {
 
     private var timer: CountDownTimer? = null
-    private var startTime = 0L
 
     fun bind(stopwatch: Stopwatch) {
+
         binding.stopwatchTimer.text = stopwatch.currentMs.displayTime()
+
         binding.customView.setPeriod(stopwatch.startMs)
-        if(stopwatch.isStarted) {
-            setIsRecyclable(false)
-        } else if(!isRecyclable) {
-            setIsRecyclable(true)
+        binding.customView.setCurrent(stopwatch.startMs - stopwatch.currentMs)
+
+        if(stopwatch.currentMs == -1L) {
+            binding.constraintLayout.setBackgroundColor(ContextCompat.getColor(binding.root.context,
+                R.color.fire_brick))
+            binding.startPauseButton.isEnabled = false
+        } else {
+            binding.constraintLayout.setBackgroundColor(ContextCompat.getColor(binding.root.context,
+                R.color.white))
+            binding.startPauseButton.isEnabled = true
         }
         if (stopwatch.isStarted) {
             startTimer(stopwatch)
@@ -49,16 +54,16 @@ class StopwatchViewHolder(
         }
 
         binding.deleteButton.setOnClickListener {
-            if(!isRecyclable) setIsRecyclable(true)
-            binding.constraintLayout.setBackgroundColor(resources.getColor(R.color.white))
+            if (stopwatch.isStarted) stopTimer(stopwatch)
+            binding.constraintLayout.setBackgroundColor(ContextCompat.getColor(binding.root.context,
+            R.color.white))
             binding.startPauseButton.isEnabled = true
             listener.delete(stopwatch.id) }
     }
 
     private fun startTimer(stopwatch: Stopwatch) {
-        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+        setIsRecyclable(false)
         binding.startPauseButton.text = resources.getText(R.string.stop)
-        binding.constraintLayout.setBackgroundColor(resources.getColor(R.color.white))
 
         timer?.cancel()
         timer = getCountDownTimer(stopwatch)
@@ -69,6 +74,7 @@ class StopwatchViewHolder(
     }
 
     private fun stopTimer(stopwatch: Stopwatch) {
+        setIsRecyclable(true)
         binding.startPauseButton.text = resources.getText(R.string.start)
 
         timer?.cancel()
@@ -78,23 +84,23 @@ class StopwatchViewHolder(
     }
 
     private fun getCountDownTimer(stopwatch: Stopwatch): CountDownTimer {
-        return object : CountDownTimer(stopwatch.startMs, UNIT_THOUSAND_MS) {
-            val interval = UNIT_THOUSAND_MS
+        return object : CountDownTimer(stopwatch.currentMs, INTERVAL) {
             override fun onTick(millisUntilFinished: Long) {
-                stopwatch.currentMs -= interval + System.currentTimeMillis() - System.currentTimeMillis()
+                binding.stopwatchTimer.text = millisUntilFinished.displayTime()
+                stopwatch.currentMs = millisUntilFinished
                 binding.customView.setCurrent(stopwatch.startMs - stopwatch.currentMs)
-                binding.stopwatchTimer.text = stopwatch.currentMs.displayTime()
             }
 
             override fun onFinish() {
-                binding.constraintLayout.setBackgroundColor(resources.getColor(R.color.fire_brick))
-                binding.startPauseButton.isEnabled = false
-                binding.blinkingIndicator.isVisible = false
-                binding.startPauseButton.text = "X"
-                binding.stopwatchTimer.text = stopwatch.startMs.displayTime()
+                binding.constraintLayout.setBackgroundColor(ContextCompat.getColor(binding.root.context,
+                    R.color.fire_brick))
                 listener.stop(stopwatch.id, stopwatch.currentMs)
-                setIsRecyclable(true)
-                (binding.blinkingIndicator.background as? AnimationDrawable)?.stop()
+                stopwatch.currentMs = -1L
+                listener.stop(stopwatch.id, stopwatch.currentMs)
+                binding.startPauseButton.text = resources.getText(R.string.finish)
+                binding.startPauseButton.isEnabled = false
+                binding.stopwatchTimer.text = stopwatch.startMs.displayTime()
+                binding.customView.setCurrent(0L)
             }
         }
     }
@@ -120,7 +126,6 @@ class StopwatchViewHolder(
 
     private companion object {
         private const val FINISH_TIME = "00:00:00"
-        private const val UNIT_THOUSAND_MS = 1000L
         private const val INTERVAL = 1000L
     }
 }

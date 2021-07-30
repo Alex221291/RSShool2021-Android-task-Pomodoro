@@ -1,6 +1,5 @@
 package com.example.pomodoro
 
-import android.graphics.PorterDuff
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -10,8 +9,22 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 
 import android.content.Intent
-import androidx.lifecycle.*
-import kotlinx.coroutines.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.OnLifecycleEvent
+import androidx.lifecycle.ProcessLifecycleOwner
+import android.app.NotificationManager
+
+import android.R
+
+import androidx.core.app.NotificationCompat
+
+import android.app.PendingIntent
+
+
+
+
+//import kotlinx.coroutines.*
 
 
 class MainActivity : AppCompatActivity(), StopwatchListener, LifecycleObserver {
@@ -30,6 +43,8 @@ class MainActivity : AppCompatActivity(), StopwatchListener, LifecycleObserver {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+
         binding.recycler.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = stopwatchAdapter
@@ -38,7 +53,7 @@ class MainActivity : AppCompatActivity(), StopwatchListener, LifecycleObserver {
         binding.addNewTimerButton.setOnClickListener {
             try {
                 time = binding.minutesNewTimer.text.toString().toLong()
-                if(time != 0L) {
+                if (time != 0L) {
                     stopwatches.add(
                         Stopwatch(
                             nextId++,
@@ -48,11 +63,8 @@ class MainActivity : AppCompatActivity(), StopwatchListener, LifecycleObserver {
                         )
                     )
                     stopwatchAdapter.submitList(stopwatches.toList())
-                }
-                else Toast.makeText(baseContext, "Invalid data", Toast.LENGTH_LONG).show()
-            }
-            catch (e:NumberFormatException)
-            {
+                } else Toast.makeText(baseContext, "Invalid data", Toast.LENGTH_LONG).show()
+            } catch (e: NumberFormatException) {
                 Toast.makeText(baseContext, "Invalid data", Toast.LENGTH_LONG).show()
             }
 
@@ -62,7 +74,7 @@ class MainActivity : AppCompatActivity(), StopwatchListener, LifecycleObserver {
     @RequiresApi(Build.VERSION_CODES.N)
     override fun start(id: Int) {
         startedId= id
-        changeStopwatch(id, null , true)
+        changeStopwatch(id, stopwatches.find { it.id == startedId }?.currentMs, true) //stopwatches.find { it.id == startedId }?.currentMs
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
@@ -71,6 +83,7 @@ class MainActivity : AppCompatActivity(), StopwatchListener, LifecycleObserver {
         changeStopwatch(id, currentMs, false)
     }
 
+    @RequiresApi(Build.VERSION_CODES.N)
     override fun delete(id: Int) {
         if (id == startedId) startedId = -1
         stopwatches.remove(stopwatches.find { it.id == id })
@@ -79,39 +92,55 @@ class MainActivity : AppCompatActivity(), StopwatchListener, LifecycleObserver {
 
     @RequiresApi(Build.VERSION_CODES.N)
     private fun changeStopwatch(id: Int, currentMs: Long?, isStarted: Boolean) {
-        stopwatches.replaceAll {
+        val newTimers = mutableListOf<Stopwatch>()
+        stopwatches.forEach {
             when {
-                it.id == id -> Stopwatch(it.id, it.startMs, currentMs ?: it.currentMs, isStarted)
-                it.isStarted -> Stopwatch(it.id, it.startMs, currentMs ?: it.currentMs, false)
-                else -> {it}
+                it.id == id -> {
+                    newTimers.add(Stopwatch(it.id, it.startMs, it.currentMs, isStarted))
+                }
+                it.isStarted -> {
+                    newTimers.add(Stopwatch(it.id, it.startMs, it.currentMs, false))
+                }
+                else -> {
+                    newTimers.add(it)
+                }
             }
         }
-        stopwatchAdapter.submitList(stopwatches.toList())
+        stopwatchAdapter.submitList(newTimers)
+        stopwatches.clear()
+        stopwatches.addAll(newTimers)
     }
 
-    private var back_pressed: Long = 0
+    private var backPressed: Long = 0
 
     override fun onBackPressed() {
-        if (back_pressed + 2000 > System.currentTimeMillis()) {
+        if (backPressed + 2000 > System.currentTimeMillis()) {
             super.onBackPressed()
         } else {
             Toast.makeText(baseContext, "Press once again to exit!", Toast.LENGTH_SHORT).show()
         }
-        back_pressed = System.currentTimeMillis()
+        backPressed = System.currentTimeMillis()
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     fun onAppBackgrounded() {
-        val startIntent = Intent(this, ForegroundService::class.java)
-        startIntent.putExtra(COMMAND_ID, COMMAND_START)
-        startIntent.putExtra(STARTED_TIMER_TIME_MS, time)
-        startService(startIntent)
+        if(startedId != -1) {
+            val startIntent = Intent(this, ForegroundService::class.java)
+            startIntent.putExtra(COMMAND_ID, COMMAND_START)
+            startIntent.putExtra(
+                STARTED_TIMER_TIME_MS,
+                stopwatches.find { it.id == startedId }?.currentMs
+            )
+            startService(startIntent)
+        }
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_START)
     fun onAppForegrounded() {
-        val stopIntent = Intent(this, ForegroundService::class.java)
-        stopIntent.putExtra(COMMAND_ID, COMMAND_STOP)
-        startService(stopIntent)
+        if (stopwatches.size != 0) {
+            val stopIntent = Intent(this, ForegroundService::class.java)
+            stopIntent.putExtra(COMMAND_ID, COMMAND_STOP)
+            startService(stopIntent)
+        }
     }
 }

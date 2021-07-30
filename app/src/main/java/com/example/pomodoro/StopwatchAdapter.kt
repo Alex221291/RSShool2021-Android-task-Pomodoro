@@ -34,6 +34,18 @@ class StopwatchAdapter(
             }
 
             override fun getChangePayload(oldItem: Stopwatch, newItem: Stopwatch) = Any()
+//            override fun getChangePayload(oldItem: Stopwatch, newItem: Stopwatch): Any? {
+//                val diff = Bundle()
+//
+//                return if ( oldItem.isStarted != newItem.isStarted ||
+//                    oldItem.currentMs == -1L ||
+//                    newItem.currentMs == newItem.startMs){
+//                    diff.putBoolean("isStarted",newItem.isStarted)
+//                    diff
+//                } else {
+//                    super.getChangePayload(oldItem, newItem)
+//                }
+//            }
         }
     }
 }

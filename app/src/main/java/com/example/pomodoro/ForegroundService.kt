@@ -18,17 +18,25 @@ class ForegroundService : Service() {
     private var notificationManager: NotificationManager? = null
     private var job: Job? = null
 
+//    val resultPendingIntent = PendingIntent.getActivity(
+//        this, 0, Intent(this, MainActivity::class.java),
+//        PendingIntent.FLAG_UPDATE_CURRENT)
+
     private val builder by lazy {
         NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(resources.getText(R.string.app_name))
-            .setGroup("Timer")
+            .setContentTitle("timer")
+            .setGroup("timer")
             .setGroupSummary(false)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentIntent(getPendingIntent())
             .setSilent(true)
             .setSmallIcon(R.drawable.ic_baseline_access_alarm_24)
+            .setContentIntent(PendingIntent.getActivity(
+                this, 0, Intent(this, MainActivity::class.java),
+                PendingIntent.FLAG_UPDATE_CURRENT))
     }
+
+
 
     override fun onCreate() {
         super.onCreate()
@@ -71,14 +79,16 @@ class ForegroundService : Service() {
     }
 
     private fun continueTimer(startTime: Long) {
+        var sT = startTime
         job = GlobalScope.launch(Dispatchers.Main) {
-            while (true) {
+            while (sT != 0L) {
                 notificationManager?.notify(
                     NOTIFICATION_ID,
                     getNotification(
-                        (System.currentTimeMillis() - startTime).displayTime()
+                        (sT).displayTime()
                     )
                 )
+                sT -= INTERVAL
                 delay(INTERVAL)
             }
         }
@@ -132,6 +142,12 @@ class ForegroundService : Service() {
         val resultIntent = Intent(this, MainActivity::class.java)
         resultIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
         return PendingIntent.getActivity(this, 0, resultIntent, PendingIntent.FLAG_ONE_SHOT)
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        commandStop()
+        TASK_REMOVED = true
+        super.onTaskRemoved(rootIntent);
     }
 
     private companion object {
