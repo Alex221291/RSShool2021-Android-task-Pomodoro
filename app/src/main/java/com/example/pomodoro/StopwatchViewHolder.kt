@@ -62,7 +62,6 @@ class StopwatchViewHolder(
     }
 
     private fun startTimer(stopwatch: Stopwatch) {
-        setIsRecyclable(false)
         binding.startPauseButton.text = resources.getText(R.string.stop)
 
         timer?.cancel()
@@ -74,7 +73,6 @@ class StopwatchViewHolder(
     }
 
     private fun stopTimer(stopwatch: Stopwatch) {
-        setIsRecyclable(true)
         binding.startPauseButton.text = resources.getText(R.string.start)
 
         timer?.cancel()
@@ -88,7 +86,7 @@ class StopwatchViewHolder(
             override fun onTick(millisUntilFinished: Long) {
                 binding.stopwatchTimer.text = millisUntilFinished.displayTime()
                 stopwatch.currentMs = millisUntilFinished
-                binding.customView.setCurrent(stopwatch.startMs - stopwatch.currentMs)
+                binding.customView.setCurrent(stopwatch.startMs - stopwatch.currentMs + INTERVAL + System.currentTimeMillis() - System.currentTimeMillis())
             }
 
             override fun onFinish() {
